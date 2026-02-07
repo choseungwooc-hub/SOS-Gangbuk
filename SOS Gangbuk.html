@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SOS 생태탐정단 : 강북구의 사라진 친구들을 찾아서</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <style>
+        /* =========================================
+           1. 전체 디자인 (Dark Theme)
+           ========================================= */
+        :root {
+            --primary-color: #00ff9d;
+            --bg-color: #1a1a2e;
+            --card-color: #252540;
+            --text-color: #ffffff;
+            --accent-ep1: #ffd700;
+            --accent-ep2: #00b09b;
+            --accent-ep3: #ff6b6b;
+            --accent-ep4: #f4a261;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0f0f1a;
+            color: var(--text-color);
+            font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-wrapper {
+            width: 100%;
+            max-width: 600px;
+            background-color: var(--bg-color);
+            height: 100vh;
+            position: relative;
+            box-shadow: 0 0 40px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+        
+        #game-wrapper::-webkit-scrollbar { display: none; }
+        #game-wrapper { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* 커스텀 모달 (Alert 대체) */
+        #custom-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #fff;
+            color: #333;
+            padding: 25px;
+            border-radius: 15px;
+            width: 85%;
+            max-width: 320px;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+            animation: popIn 0.2s ease-out;
+        }
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-text { font-size: 1.1rem; line-height: 1.5; margin-bottom: 20px; word-break: keep-all; }
+        .modal-btn {
+            background: var(--primary-color);
+            color: #000;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .modal-btn:active { transform: scale(0.95); }
+
+        /* 각 섹션 */
+        .game-section {
+            display: none;
+            width: 100%;
+            min-height: 100%;
+            position: absolute;
+            top: 0; left: 0;
+            background-color: var(--bg-color);
+            z-index: 10;
+            flex-direction: column;
+            padding-bottom: 80px;
+        }
+        .game-section.active { display: flex; position: relative; }
+
+        /* 장면 (누적형) */
+        .scene {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            width: 100%;
+            height: auto;
+            border-bottom: 1px dashed rgba(255,255,255,0.1);
+            animation: fadeIn 0.6s ease-out;
+        }
+        .scene.active { display: flex; }
+        .scene.finished { opacity: 0.6; pointer-events: none; filter: grayscale(0.3); }
+
+        /* UI 요소 */
+        h2 {
+            text-align: center; color: var(--primary-color); margin-bottom: 15px;
+            font-size: 1.3rem; text-shadow: 0 2px 4px rgba(0,0,0,0.5); width: 100%; flex-shrink: 0;
+        }
+
+        .story-text {
+            background: rgba(255, 255, 255, 0.08); padding: 15px; border-radius: 12px;
+            line-height: 1.6; margin-bottom: 20px; border-left: 4px solid var(--primary-color);
+            font-size: 1rem; word-break: keep-all; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .dialogue { font-style: italic; color: #dcdcdc; margin-top: 10px; display: block; font-weight: bold; }
+
+        /* 기본 이미지 박스 (1:1 정사각형) */
+        .img-box {
+            width: 100%; aspect-ratio: 1 / 1; background-color: #000; border-radius: 12px;
+            margin-bottom: 20px; display: flex; justify-content: center; align-items: center;
+            overflow: hidden; border: 2px solid #444; flex-shrink: 0;
+        }
+        .img-box img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* 버튼 */
+        .btn {
+            background: linear-gradient(135deg, #00b09b, #96c93d); border: none; padding: 15px 0;
+            color: white; font-size: 1.1rem; font-weight: bold; border-radius: 30px; cursor: pointer;
+            width: 100%; margin-top: auto; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(0, 255, 150, 0.3);
+            transition: 0.2s; flex-shrink: 0;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled, .btn.disabled { background: #555; color: #aaa; cursor: default; box-shadow: none; }
+
+        input[type="text"], input[type="number"] {
+            width: 100%; padding: 15px; font-size: 1.1rem; text-align: center; border-radius: 10px;
+            border: 2px solid #555; background: #222; color: white; margin-bottom: 20px; flex-shrink: 0;
+        }
+
+        .choice-btn {
+            background: #333; color: #fff; border: 1px solid #555; padding: 15px; width: 100%; text-align: left;
+            border-radius: 10px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; font-size: 1rem; flex-shrink: 0;
+        }
+        .choice-btn:hover { background: #444; border-color: var(--primary-color); }
+
+        /* 로비 */
+        .door-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; margin-bottom: 20px; flex-shrink: 0; }
+        .door-card {
+            background-color: var(--card-color); border: 2px solid #555; border-radius: 15px;
+            padding: 15px; text-align: center; cursor: pointer; height: 140px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .door-card.cleared { opacity: 0.5; border-color: #444; background: #111; pointer-events: none; filter: grayscale(100%); position: relative; }
+        .door-card.cleared::after {
+            content: "✅ 해결 완료"; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg); border: 3px solid #00ff9d; color: #00ff9d;
+            padding: 5px 10px; font-weight: bold; background: rgba(0,0,0,0.9); font-size: 1rem; white-space: nowrap;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-5px); } 100% { transform: translateX(0); } }
+        .shake { animation: shake 0.4s ease-in-out; }
+
+        /* === 특수 미션 스타일 === */
+        /* EP1 M1: 틀린그림찾기 (1768x2296 비율) */
+        .hidden-catch-container { position: relative; width: 100%; aspect-ratio: 1768 / 2296; margin: 0 auto; flex-shrink: 0; }
+        /* 네모 영역 (수정됨: 파란색) */
+        .hidden-catch-zone { 
+            position: absolute; 
+            border: 2px solid transparent; 
+            cursor: pointer; 
+            background: transparent;
+        }
+        /* 클릭 시 파란색 표시 */
+        .found-marker { 
+            position: absolute; 
+            border: 3px solid #0055ff; 
+            background: rgba(0, 85, 255, 0.3); 
+            box-shadow: 0 0 10px #0055ff; 
+            pointer-events: none; 
+            display: none; 
+        }
+
+        /* EP2 M1: 분리수거 */
+        .trash-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; margin-bottom: 20px; flex-shrink: 0; }
+        .trash-item { background: #444; padding: 10px 5px; border-radius: 8px; text-align: center; font-size: 0.9rem; cursor: pointer; border: 2px solid transparent; }
+        .trash-item.selected { border-color: var(--accent-ep2); background: #222; color: var(--accent-ep2); font-weight: bold; }
+
+        /* EP2 M3: 글자 블록 */
+        .word-block-container { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+        .word-block { 
+            width: 60px; height: 60px; background: #444; border: 2px solid #777; border-radius: 10px;
+            color: white; font-size: 1.5rem; display: flex; justify-content: center; align-items: center; cursor: pointer;
+        }
+        #bridge-display {
+            width: 80%; height: 50px; border-bottom: 4px solid #00ff9d; color: #00ff9d;
+            font-size: 2rem; text-align: center; margin: 0 auto 20px; letter-spacing: 5px;
+        }
+        .bridge-btn-group { display: flex; gap: 10px; width: 100%; justify-content: center; } 
+
+        /* EP2 M4: 너구리 행동 */
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-bottom: 20px; flex-shrink: 0; }
+        .action-btn { background: #333; color: white; border: 1px solid #555; padding: 15px; border-radius: 10px; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
+        #raccoon-status { width: 80px; height: 80px; border-radius: 50%; background: #ff4444; margin: 0 auto 15px; display: flex; justify-content: center; align-items: center; font-size: 2.5rem; }
+        #raccoon-status.green { background: #00cc00; }
+
+        /* EP3 M2: 리듬 게임 */
+        .memory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 100%; max-width: 350px; margin: 0 auto 20px; flex-shrink: 0; }
+        .memory-hole { aspect-ratio: 1; background: #5d4037; border-radius: 50%; border: 3px solid #3e2723; cursor: pointer; display: flex; justify-content: center; align-items: center; font-weight: bold; color: rgba(255,255,255,0.3); font-size: 1.2rem; }
+        .memory-hole.active { background: #ffeb3b; color: #000; box-shadow: 0 0 15px #ffeb3b; transform: scale(1.1); }
+
+        /* EP3 M3: 암호표 (1~20 랜덤 섞임) */
+        .code-table { 
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; 
+            background: #f4e1d2; color: #3e2723; padding: 10px; border-radius: 5px; 
+            margin-bottom: 15px; font-family: 'Courier New', monospace; font-size: 0.85rem; flex-shrink: 0;
+        }
+        .code-item { border: 1px dashed #a1887f; padding: 5px 2px; text-align: center; background:rgba(255,255,255,0.3); }
+
+        /* EP4 M2: 발자국 추적 (980x980) */
+        .ep4-maze-img { width: 100%; aspect-ratio: 980/980; object-fit: contain; border-radius: 10px; margin-bottom: 15px; }
+
+        /* EP4 M3: 로드킬 (도로 넓히고 교차 주행) */
+        .road-scene { 
+            width: 100%; height: 380px; background: #333; position: relative; overflow: hidden; 
+            border-radius: 10px; border-left: 3px dashed #fff; border-right: 3px dashed #fff; margin-bottom: 20px; flex-shrink: 0; 
+        }
+        .center-line { position: absolute; top: 50%; width: 100%; height: 2px; background: #fff; border-bottom: 2px dashed #333; }
+        .player-salk { position: absolute; font-size: 2.5rem; left: 50%; transform: translateX(-50%); transition: top 0.2s; z-index: 10; }
+        .enemy-car { position: absolute; width: 80px; height: 50px; font-size: 2.5rem; display: flex; justify-content: center; align-items: center; }
+        
+        /* 자동차 위치 및 방향 수정 */
+        .car-top { transform: scaleX(1); top: 100px; } /* 위쪽 차선, 빨간차 */
+        .car-bottom { transform: scaleX(-1); top: 240px; } /* 아래쪽 차선, 파란차 */
+        
+        .safe-zone-end { position:absolute; bottom:0; width:100%; height:50px; background:rgba(0,255,0,0.3); border-top:2px solid #0f0; display:flex; justify-content:center; align-items:center; color:#0f0; font-weight:bold; }
+
+        /* EP4 M4: 먹이사슬 */
+        .piece-container { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; flex-shrink: 0; width: 100%; }
+        .puzzle-piece { width: 60px; height: 60px; background-color: #3e3e5e; border: 2px solid #fff; border-radius: 5px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 0.8rem; }
+        .puzzle-piece.selected { border-color: #f4a261; background-color: #f4a261; color: #000; }
+        .pyramid-container { display: flex; flex-direction: column; gap: 5px; width: 100%; align-items: center; margin-bottom: 20px; flex-shrink: 0; }
+        .puzzle-slot { width: 100%; max-width: 250px; height: 40px; border: 2px dashed #aaa; border-radius: 5px; display: flex; justify-content: center; align-items: center; font-size: 0.9rem; color: #aaa; background: rgba(255,255,255,0.05); cursor: pointer; }
+        .puzzle-slot.filled { border-style: solid; border-color: #f4a261; background-color: #5d4037; color: #fff; font-weight: bold; }
+
+        /* 엔딩: 스프링 노트 */
+        .spring-note {
+            background: #fdf5e6; color: #333; padding: 15px 20px; border-radius: 5px;
+            position: relative; margin: 10px auto; display: inline-block;
+            font-family: 'Gungsuh', serif; font-weight: bold; font-size: 1.5rem;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+        }
+        .spring-note::before {
+            content: ""; position: absolute; top: -10px; left: 10px; right: 10px; height: 10px;
+            background: repeating-linear-gradient(90deg, #333 0, #333 2px, transparent 2px, transparent 15px);
+        }
+
+        /* 폭죽 효과 (Canvas) */
+        #confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100; }
+
+    </style>
+</head>
+<body>
+    <!-- 커스텀 모달 -->
+    <div id="custom-modal">
+        <div class="modal-content">
+            <p id="modal-text" class="modal-text">알림 내용</p>
+            <button class="modal-btn" onclick="GameUI.closeModal()">확인</button>
+        </div>
+    </div>
+
+    <canvas id="confetti-canvas"></canvas>
+    <div id="game-wrapper">
+        <audio id="bgm-main" loop></audio>
+
+        <!-- #################### 인트로 #################### -->
+        <div id="section-intro" class="game-section active">
+            <div class="scene active" id="intro-1">
+                <h2>#1. 나른한 오후</h2>
+                <div class="img-box">
+                    <img src="img/1.인트로 1번.jpg" alt="이불 속 주인공">
+                </div>
+                <div class="story-text">
+                    창문 밖으로 따스한 햇살이 쏟아지는 금요일 오후.<br>
+                    학교에서 돌아온 나는 왠지 모르게 몸에 기운이 없었다.<br>
+                    '북극곰이 불쌍하긴 한데... 내가 사는 서울 강북구랑은 상관없는 일이잖아.'<br>
+                    나는 따뜻한 이불 속에 파고들어 눈을 감았다.
+                </div>
+                <button class="btn" onclick="SceneManager.next('intro', 1)">잠에 빠져든다...</button>
+            </div>
+
+            <div class="scene" id="intro-2">
+                <h2>#2. 회색빛 안개 속</h2>
+                <div class="img-box">
+                    <img src="img/1.인트로 2번.jpg" alt="회색빛 도시">
+                </div>
+                <div class="story-text">
+                    "...도와줘... 제발..."<br><br>
+                    다급한 목소리에 눈을 떴다. 내 방은 사라지고 짙은 회색 안개뿐이었다.<br>
+                    창밖 북한산은 잿빛 먼지에 뒤덮여 신음하고 있었고, 우이천은 검은 물이 되어 흐르고 있었다.
+                </div>
+                <button class="btn" onclick="SceneManager.next('intro', 2)">주변을 살펴본다</button>
+            </div>
+
+            <div class="scene" id="intro-3">
+                <h2>#3. 그림자의 경고</h2>
+                <div class="img-box">
+                    <img src="img/1.인트로 3번.jpg" alt="4개의 그림자">
+                </div>
+                <div class="story-text">
+                    안개 속에서 흐릿한 네 개의 그림자가 나타났다.<br>
+                    "넌 우리가 먼 곳에만 있다고 생각했지?<br>
+                    우리는 바로 여기, 네가 사는 강북구 곳곳에 있어.<br>
+                    하지만 이제는 숨을 쉴 수가 없어..."<br><br>
+                    그림자들이 사라진 뒤, 주머니 속에서 스마트폰 진동이 울렸다.
+                </div>
+                <button class="btn" onclick="SceneManager.next('intro', 3)">스마트폰 확인하기</button>
+            </div>
+
+            <div class="scene" id="intro-4">
+                <h2>#4. 미션의 시작</h2>
+                <div class="img-box">
+                    <img src="img/1.인트로 4번.jpg" alt="앱 실행">
+                </div>
+                <div class="story-text">
+                    <strong>[긴급 의뢰]</strong><br>
+                    "우리의 이름과 모습을 기억해 줘.<br>
+                    네가 불러주지 않으면, 우리는 영영 사라지게 될 거야."<br><br>
+                    스마트폰이 울리며 &lt;SOS 생태탐정단&gt; 앱이 켜졌다.
+                </div>
+                <button class="btn" onclick="GameSystem.goToLobby()">생태탐정단 출동!</button>
+            </div>
+        </div>
+
+        <!-- #################### 로비 #################### -->
+        <div id="section-lobby" class="game-section">
+            <div class="scene active">
+                <h2>🕵️ 탐정 본부</h2>
+                <div class="story-text" style="text-align:center;">
+                    회색 안개가 걷히며 4개의 문이 나타났다.<br>
+                    구출할 친구를 선택해라!
+                </div>
+                <div class="door-grid">
+                    <div class="door-card" id="door-1" onclick="GameSystem.startEpisode(1)" style="border-color: var(--accent-ep1);">
+                        <span class="door-icon">🌼</span>
+                        <div class="door-title">EP1. 노란 옷의 불청객<br>(북한산)</div>
+                    </div>
+                    <div class="door-card" id="door-2" onclick="GameSystem.startEpisode(2)" style="border-color: var(--accent-ep2);">
+                        <span class="door-icon">🍃</span>
+                        <div class="door-title">EP2. 밤거리의 그림자<br>(우이천)</div>
+                    </div>
+                    <div class="door-card" id="door-3" onclick="GameSystem.startEpisode(3)" style="border-color: var(--accent-ep3);">
+                        <span class="door-icon">🥁</span>
+                        <div class="door-title">EP3. 위기의 건축가<br>(숲속)</div>
+                    </div>
+                    <div class="door-card" id="door-4" onclick="GameSystem.startEpisode(4)" style="border-color: var(--accent-ep4);">
+                        <span class="door-icon">🐆</span>
+                        <div class="door-title">EP4. 유령 사냥꾼<br>(우이령길)</div>
+                    </div>
+                </div>
+                <button id="final-btn" class="btn" style="display:none; background:linear-gradient(45deg, #ff00cc, #333399);" onclick="GameSystem.goToEnding()">
+                    ✨ 꿈에서 깨어나기 (히든 엔딩) ✨
+                </button>
+            </div>
+        </div>
+
+        <!-- #################### EP1 산개나리 #################### -->
+        <div id="section-ep1" class="game-section">
+            <div class="scene active" id="ep1-1">
+                <h2 style="color:var(--accent-ep1)">EP1. 외로운 노란 별</h2>
+                <div class="img-box">
+                    <img src="img/2.산개나리 1번.jpg" alt="산개나리">
+                </div>
+                <div class="story-text">
+                    빽빽한 소나무 숲 바위 틈에서 가느다란 목소리가 들려왔다.<br>
+                    "거기 누구니...? 내 목소리가 들려?"
+                </div>
+                <button class="btn" onclick="SceneManager.next('ep1', 1)">소리의 정체 확인하기</button>
+            </div>
+
+            <!-- M1: 틀린그림찾기 (파란 네모, 영역 확대) -->
+            <div class="scene" id="ep1-2">
+                <h2 style="color:var(--accent-ep1)">M1. 가짜 개나리를 찾아라!</h2>
+                <div class="story-text">
+                    "나는 동네 공원의 개나리와는 달라."<br>
+                    화면에서 <strong>특징 3가지</strong>를 모두 찾아 눌러줘!
+                </div>
+                <div class="hidden-catch-container">
+                    <img src="img/2.산개나리 2번.jpg" style="width:100%; height:100%; object-fit:cover; border-radius:10px;">
+                    <!-- 정답 영역 (네모, 더 크게) -->
+                    <!-- 왼쪽 상단 -->
+                    <div class="hidden-catch-zone" style="top:20%; left:5%; width:30%; height:25%;" onclick="Ep1Game.catchItem(this)"></div>
+                    <div class="found-marker" style="top:20%; left:5%; width:30%; height:25%;"></div>
+
+                    <!-- 왼쪽 하단 -->
+                    <div class="hidden-catch-zone" style="bottom:5%; left:5%; width:30%; height:25%;" onclick="Ep1Game.catchItem(this)"></div>
+                    <div class="found-marker" style="bottom:5%; left:5%; width:30%; height:25%;"></div>
+
+                    <!-- 오른쪽 하단 -->
+                    <div class="hidden-catch-zone" style="bottom:5%; right:5%; width:35%; height:25%;" onclick="Ep1Game.catchItem(this)"></div>
+                    <div class="found-marker" style="bottom:5%; right:5%; width:35%; height:25%;"></div>
+                </div>
+                <p id="ep1-cnt" style="color:var(--accent-ep1); font-weight:bold; margin-top:10px;">찾은 특징: 0 / 3</p>
+                <button id="ep1-btn-2" class="btn" style="display:none;" onclick="SceneManager.next('ep1', 2)">정체 확인 완료!</button>
+            </div>
+
+            <div class="scene" id="ep1-3">
+                <h2 style="color:var(--accent-ep1)">M2. 초록 거인의 정체</h2>
+                <div class="img-box">
+                    <img src="img/2.산개나리 3번.jpg" alt="요정">
+                </div>
+                <div class="story-text">
+                    "맞아, 나는 북한산 깃대종 산개나리야.<br>
+                    이 나무들이 너무 빽빽해서 햇빛을 막고 있어.<br>
+                    줄기에 털 같은 싹이 난 이 나무의 이름은?"<br>
+                    (초성 힌트: ㄹㄱㄷ 소나무)
+                </div>
+                <input type="text" id="ep1-input-1" placeholder="정답 입력">
+                <button class="btn" onclick="Ep1Game.checkAnswer1()">확인</button>
+            </div>
+
+            <div class="scene" id="ep1-4">
+                <h2 style="color:var(--accent-ep1)">M3. 우리는 짝꿍이 필요해</h2>
+                <div class="story-text">
+                    "햇빛 덕분에 힘이 나! 하지만 여전히 씨앗을 맺을 수가 없어.<br>
+                    이곳 가족들은 나와 유전자가 똑같거든.<br>
+                    <strong>다른 산에 사는 친구</strong>를 소개해 줘!"
+                </div>
+                <button class="choice-btn" onclick="GameUI.modal('거긴 너무 가까워! 우리랑 유전자가 비슷할 거야.')">1. 바로 옆 북한산 친구</button>
+                <button class="choice-btn" onclick="GameUI.modal('딩동댕! 멀리 떨어진 친구와 만나야 건강한 씨앗이 생겨.'); SceneManager.next('ep1', 4);">2. 멀리 떨어진 관악산 친구</button>
+            </div>
+
+            <div class="scene" id="ep1-5">
+                <h2 style="color:var(--accent-ep1)">M4. 우리는 왜 약해졌을까?</h2>
+                <div class="story-text">
+                    "와! 새로운 친구를 만나니 건강한 씨앗이 생겼어.<br>
+                    <strong>생김새와 성질이 서로 다양한 정도</strong>를 뜻하는 이것은?"<br>
+                    (초성: ㅅㅁㄷㅇㅅ)
+                </div>
+                <input type="text" id="ep1-input-2" placeholder="다섯 글자 입력">
+                <button class="btn" onclick="Ep1Game.checkAnswer2()">정답 확인</button>
+            </div>
+
+            <div class="scene" id="ep1-6">
+                <h2 style="color:var(--accent-ep1)">Final. 다양성의 씨앗</h2>
+                <div class="story-text">
+                    "우리가 다시 숲의 별이 될 수 있도록 마지막 주문을 외쳐줘!"<br><br>
+                    <strong>[암호표]</strong><br>
+                    ♥=양 / ★=다 / ♠=야 / ◆=강 / ♣=해<br><br>
+                    주문: <strong>"★ ♥ ♣ ♠ ◆ 하다"</strong>
+                </div>
+                <input type="text" id="ep1-input-3" placeholder="문장 완성하기">
+                <button class="btn" onclick="Ep1Game.checkAnswer3()">주문 외치기</button>
+            </div>
+
+            <div class="scene" id="ep1-7">
+                <h2 style="color:var(--accent-ep1)">🎉 에피소드 1 클리어!</h2>
+                <div class="img-box">
+                    <img src="img/2.산개나리 4번.jpg" alt="황금씨앗">
+                </div>
+                <div class="story-text">
+                    숲 전체가 환하게 빛나며 산개나리 요정들이 춤을 추었다.<br>
+                    내 손에는 <strong>[황금빛 산개나리 씨앗]</strong>이 쥐어져 있었다.
+                </div>
+                <button class="btn" onclick="GameSystem.clearEpisode(1)">본부로 복귀</button>
+            </div>
+        </div>
+
+        <!-- #################### EP2 너구리 #################### -->
+        <div id="section-ep2" class="game-section">
+            <div class="scene active" id="ep2-1">
+                <h2 style="color:var(--accent-ep2)">EP2. 밤을 걷는 그림자</h2>
+                <div class="img-box">
+                    <img src="img/3.너구리 1번.jpg" alt="아픈 너구리">
+                </div>
+                <div class="story-text">
+                    어두운 밤, 쓰레기 더미 옆에서 신음 소리가 들린다.<br>
+                    "으... 배 아파... 사람들이 남긴 음식을 먹었더니..."
+                </div>
+                <button class="btn" onclick="SceneManager.next('ep2', 1)">치료하러 가기</button>
+            </div>
+
+            <div class="scene" id="ep2-2">
+                <h2 style="color:var(--accent-ep2)">M1. 올바른 분리배출</h2>
+                <div class="story-text">
+                    너구리가 쓰레기를 먹지 못하게 <strong>재활용 가능한 것 4개</strong>를 치워줘!
+                </div>
+                <div class="trash-grid">
+                    <div class="trash-item" data-v="o" onclick="Ep2Game.toggleTrash(this)">깨끗한<br>페트병</div>
+                    <div class="trash-item" data-v="x" onclick="Ep2Game.toggleTrash(this)">양념 묻은<br>컵라면</div>
+                    <div class="trash-item" data-v="x" onclick="Ep2Game.toggleTrash(this)">치킨 뼈</div>
+                    <div class="trash-item" data-v="o" onclick="Ep2Game.toggleTrash(this)">알루미늄<br>캔</div>
+                    <div class="trash-item" data-v="x" onclick="Ep2Game.toggleTrash(this)">깨진 유리</div>
+                    <div class="trash-item" data-v="o" onclick="Ep2Game.toggleTrash(this)">신문지</div>
+                    <div class="trash-item" data-v="x" onclick="Ep2Game.toggleTrash(this)">영수증</div>
+                    <div class="trash-item" data-v="o" onclick="Ep2Game.toggleTrash(this)">유리병</div>
+                    <div class="trash-item" data-v="x" onclick="Ep2Game.toggleTrash(this)">나무젓가락</div>
+                </div>
+                <button class="btn" onclick="Ep2Game.submitTrash()">분리배출 하기 ♻️</button>
+            </div>
+
+            <div class="scene" id="ep2-3">
+                <h2 style="color:var(--accent-ep2)">M2. 범인은 누구일까?</h2>
+                <div class="story-text">
+                    "고마워! 사람들이 자꾸 나를 고양이나 라쿤이라고 해.<br>
+                    <strong>내 진짜 발자국(너구리)</strong>을 찾아줘!"
+                </div>
+                <button class="choice-btn" onclick="GameUI.modal('발톱 자국이 없잖아! 이건 고양이야.')">A. 동글동글 발자국 (발톱 X)</button>
+                <button class="choice-btn" onclick="GameUI.modal('발가락이 3개네? 이건 새야.')">B. 가늘고 긴 발자국</button>
+                <button class="choice-btn" onclick="GameUI.modal('물갈퀴가 있네. 이건 수달이야.')">C. 물갈퀴 발자국</button>
+                <button class="choice-btn" onclick="GameUI.modal('정답이야! 너구리는 발톱 자국이 선명해.'); SceneManager.next('ep2', 3);">D. 발톱이 선명한 발자국 (발가락 4개)</button>
+            </div>
+
+            <!-- M3: 글자 블록 클릭 -->
+            <div class="scene" id="ep2-4">
+                <h2 style="color:var(--accent-ep2)">M3. 끊어진 길 잇기</h2>
+                <div class="img-box">
+                     <img src="img/3.너구리 2번.jpg" alt="생태통로">
+                </div>
+                <div class="story-text">
+                    "도로가 숲을 끊어놨어. 로드킬을 당하지 않게 <strong>이것</strong>을 건설해 줘.<br>
+                    글자 블록을 순서대로 눌러 다리를 완성해!"
+                </div>
+                <div id="bridge-display">____</div>
+                <div class="word-block-container">
+                    <div class="word-block" onclick="Ep2Game.addBridge('로')">로</div>
+                    <div class="word-block" onclick="Ep2Game.addBridge('생')">생</div>
+                    <div class="word-block" onclick="Ep2Game.addBridge('통')">통</div>
+                    <div class="word-block" onclick="Ep2Game.addBridge('태')">태</div>
+                </div>
+                <div class="bridge-btn-group">
+                    <button class="btn" style="width:48%;" onclick="Ep2Game.checkBridge()">다리 건설</button>
+                    <button class="btn" style="background:#555; width:48%;" onclick="Ep2Game.resetBridge()">다시 놓기</button>
+                </div>
+            </div>
+
+            <div class="scene" id="ep2-5">
+                <h2 style="color:var(--accent-ep2)">M4. 너구리의 '빨간불'</h2>
+                <div id="raccoon-status">🤬</div>
+                <div class="story-text" style="text-align:center;">
+                    <strong>[경고]</strong> 너구리가 잔뜩 겁을 먹었어요.<br>
+                    너구리를 진정시킬 <strong>올바른 행동</strong>은?
+                </div>
+                <div class="action-grid">
+                    <div class="action-btn" onclick="Ep2Game.checkAction(1)">🍗<span>먹이주기</span></div>
+                    <div class="action-btn" onclick="Ep2Game.checkAction(2)">📸<span>사진찍기</span></div>
+                    <div class="action-btn" onclick="Ep2Game.checkAction(3)">👋<span>쓰다듬기</span></div>
+                    <div class="action-btn" onclick="Ep2Game.checkAction(4)">👣🔙<span>뒷걸음질</span></div>
+                </div>
+            </div>
+
+            <div class="scene" id="ep2-6">
+                <h2 style="color:var(--accent-ep2)">Final. 너구리의 꼬리 셈</h2>
+                <div class="story-text">
+                    "마지막 문제야. 난 꼬리에 줄무늬가 없어."<br>
+                    (발가락 4개) × (꼬리 줄무늬 ?) + (다리 4개) = <strong>?</strong>
+                </div>
+                <input type="number" id="ep2-input-math" placeholder="숫자 입력">
+                <p id="ep2-hint-math" style="display:none; color:#ff6b6b; text-align:center; margin-bottom:10px;">
+                    힌트: 꼬리 줄무늬는 0개야!<br>(4 × 0) + 4 를 계산해봐.
+                </p>
+                <button class="btn" onclick="Ep2Game.checkMath()">정답 확인</button>
+            </div>
+
+            <div class="scene" id="ep2-7">
+                <h2 style="color:var(--accent-ep2)">🎉 에피소드 2 클리어!</h2>
+                <div class="img-box">
+                    <img src="img/3.너구리 3번.jpg" alt="나뭇잎">
+                </div>
+                <div class="story-text">
+                    "우리는 서로 닿지 않아도 마음으로 아껴주는 친구야."<br>
+                    너구리는 숲으로 사라지며 초록색 <strong>[마법 나뭇잎]</strong>을 남겼다.
+                </div>
+                <button class="btn" onclick="GameSystem.clearEpisode(2)">본부로 복귀</button>
+            </div>
+        </div>
+
+        <!-- #################### EP3 딱따구리 #################### -->
+        <div id="section-ep3" class="game-section">
+            <div class="scene active" id="ep3-1">
+                <h2 style="color:var(--accent-ep3)">EP3. 위기의 건축가</h2>
+                <div class="img-box">
+                    <img src="img/4.오색딱따구리 1번.jpg" alt="딱따구리">
+                </div>
+                <div class="story-text">
+                    숲속에서 끙끙 앓는 소리가 들려왔어.<br>
+                    "아이고, 머리야..."<br>
+                    숲의 드러머 <strong>오색딱따구리</strong>가 괴로워하고 있어.
+                </div>
+                <button class="btn" onclick="SceneManager.next('ep3', 1)">딱따구리 만나러 가기</button>
+            </div>
+
+            <div class="scene" id="ep3-2">
+                <h2 style="color:var(--accent-ep3)">M1. 진짜 나를 찾아줘</h2>
+                <div class="story-text">
+                    "어지러워서 거울이 안 보여...<br>
+                    내 배는 <strong>빨간색</strong>이고 등에는 <strong>흰 점</strong>이 있어."
+                </div>
+                <button class="choice-btn" onclick="GameUI.modal('나는 머리 전체가 빨간 크낙새야. (지금은 멸종되었어)')">A. 머리 전체가 빨간 새</button>
+                <button class="choice-btn" onclick="GameUI.modal('딩동댕! 나는 오색딱따구리야.'); SceneManager.next('ep3', 2);">B. 검은 등, 흰 점, 빨간 배</button>
+                <button class="choice-btn" onclick="GameUI.modal('나는 온몸이 회색인 청딱따구리야.')">C. 몸 전체가 회색인 새</button>
+            </div>
+
+            <!-- M2: 리듬 게임 (5개, 천천히) -->
+            <div class="scene" id="ep3-3">
+                <h2 style="color:var(--accent-ep3)">M2. 숲속의 리듬 게임</h2>
+                <div class="story-text">
+                    "벌레를 잡아 힘을 내야 해. 내가 나무 쪼는 순서를 기억해서 따라 해줘!"
+                </div>
+                <div id="rhythm-status" style="text-align:center; color:#ffd700; margin-bottom:10px;">[시작] 버튼을 누르세요</div>
+                <div class="memory-grid">
+                    <script>for(let i=1; i<=16; i++) document.write(`<div class="memory-hole" id="hole-${i}" onclick="Ep3Game.userClick(${i})">${i}</div>`);</script>
+                </div>
+                <button class="btn" id="rhythm-start-btn" onclick="Ep3Game.startGame()">시작! (순서 기억하기)</button>
+            </div>
+
+            <!-- M3: 1-20 암호표 (800x800, 이미지 박스 제거) -->
+            <div class="scene" id="ep3-4">
+                <h2 style="color:var(--accent-ep3)">M3. 나무의 비밀 메시지</h2>
+                <div class="story-text">
+                    "단단한 나무를 쪼았더니 머리가 너무 아파.<br>
+                    <strong>내게 필요한 건 어떤 나무일까?</strong><br>
+                    나무 껍질에 남긴 메시지를 풀어줘!"
+                </div>
+                <div class="code-table">
+                    <!-- 1~20 랜덤 배치 (6=고, 2=사, 5=목 고정, 나머지 랜덤) -->
+                    <div class="code-item">1.해</div><div class="code-item">2.사</div><div class="code-item">3.돌</div><div class="code-item">4.바</div><div class="code-item">5.목</div>
+                    <div class="code-item">6.고</div><div class="code-item">7.물</div><div class="code-item">8.흙</div><div class="code-item">9.꽃</div><div class="code-item">10.풀</div>
+                    <div class="code-item">11.집</div><div class="code-item">12.생</div><div class="code-item">13.달</div><div class="code-item">14.별</div><div class="code-item">15.숲</div>
+                    <div class="code-item">16.구</div><div class="code-item">17.름</div><div class="code-item">18.비</div><div class="code-item">19.눈</div><div class="code-item">20.산</div>
+                </div>
+                <div style="text-align:center; font-size:1.5rem; color:#ff6b6b; margin-bottom:10px;">Q. 암호: 625</div>
+                <input type="text" id="ep3-input-code" placeholder="정답 단어 입력">
+                <button class="btn" onclick="Ep3Game.checkCode()">해독하기</button>
+            </div>
+
+            <!-- M4: 하늘다람쥐 특징 퀴즈 (5가지 특징) -->
+            <div class="scene" id="ep3-5">
+                <h2 style="color:var(--accent-ep3)">M4. 빈집의 주인은?</h2>
+                <div class="story-text">
+                    "내가 이사를 가면 이 친구가 빈 둥지를 써.<br>
+                    <strong>특징 5가지를 보고 누군지 맞춰봐!</strong>"
+                </div>
+                <div style="background:#333; padding:15px; border-radius:10px; margin-bottom:15px; text-align:left; font-size:0.9rem;">
+                    1. 앞다리와 뒷다리 사이에 <strong>날개막(비막)</strong>이 있어서 슝~ 날 수 있어요.<br>
+                    2. 밤하늘을 날아다닌다.<br>
+                    3. 눈이 아주 크다.<br>
+                    4. 천연기념물이다.<br>
+                    5. 귀여운 외모를 가졌다.
+                </div>
+                <input type="text" id="ep3-input-friend" placeholder="다섯 글자 입력">
+                <p id="ep3-hint-friend" style="display:none; color:#ff6b6b; text-align:center;">힌트: ㅎㄴㄷㄹㅈ</p>
+                <button class="btn" onclick="Ep3Game.checkFriend()">정답 확인</button>
+            </div>
+
+            <div class="scene" id="ep3-6">
+                <h2 style="color:var(--accent-ep3)">Final. 숲의 아치돌</h2>
+                <div class="story-text">
+                    "마지막 문제야. 나처럼 생태계 전체를 지탱하는 중요한 생물을 무엇이라고 할까?"<br>
+                    (힌트: ㅎ ㅅ ㅈ)
+                </div>
+                <input type="text" id="ep3-input-key" placeholder="세 글자 입력">
+                <button class="btn" onclick="Ep3Game.checkKey()">정답 확인</button>
+            </div>
+
+            <div class="scene" id="ep3-7">
+                <h2 style="color:var(--accent-ep3)">🎉 에피소드 3 클리어!</h2>
+                <div class="img-box">
+                    <img src="img/4.오색딱따구리 2번.jpg" alt="마스터키">
+                </div>
+                <div class="story-text">
+                    "이건 [숲속의 마스터키]야.<br>
+                    막힌 곳을 뚫어 숲에 숨통을 트이게 하는 나처럼,<br>
+                    너도 답답한 문제를 시원하게 해결하는 사람이 되길 바랄게."
+                </div>
+                <button class="btn" onclick="GameSystem.clearEpisode(3)">본부로 복귀</button>
+            </div>
+        </div>
+
+        <!-- #################### EP4 삵 #################### -->
+        <div id="section-ep4" class="game-section">
+            <div class="scene active" id="ep4-1">
+                <h2 style="color:var(--accent-ep4)">EP4. 고독한 사냥꾼</h2>
+                <div class="img-box">
+                    <img src="img/5.삵 1번.jpg" alt="삵">
+                </div>
+                <div class="story-text">
+                    북한산 자락의 습지. 갈대 숲 사이로 날카로운 눈빛이 번쩍였어.<br>
+                    "나는 이곳에 숨죽여 살고 있어... 친구들이 보고 싶어."
+                </div>
+                <button class="btn" onclick="SceneManager.next('ep4', 1)">삵 만나러 가기</button>
+            </div>
+
+            <div class="scene" id="ep4-2">
+                <h2 style="color:var(--accent-ep4)">M1. 나는 고양이가 아니야!</h2>
+                <div class="story-text">
+                    "사람들은 나를 길고양이로 착각해. 나의 특징 2가지를 골라줘."
+                </div>
+                <div style="text-align:left; padding:15px; background:#333; border-radius:10px; margin-bottom:20px; width:100%;">
+                    <label style="display:block; padding:10px;"><input type="checkbox" name="salk" value="x"> 1. 꼬리가 가늘고 길다</label>
+                    <label style="display:block; padding:10px;"><input type="checkbox" name="salk" value="o"> 2. 귀 뒤에 흰 반점이 있다</label>
+                    <label style="display:block; padding:10px;"><input type="checkbox" name="salk" value="o"> 3. 꼬리가 두껍고 뭉툭하다</label>
+                    <label style="display:block; padding:10px;"><input type="checkbox" name="salk" value="x"> 4. 사람을 잘 따른다</label>
+                </div>
+                <button class="btn" onclick="Ep4Game.checkFeatures()">확인</button>
+            </div>
+
+            <!-- M2: 발자국 -->
+            <div class="scene" id="ep4-3">
+                <h2 style="color:var(--accent-ep4)">M2. 발자국을 추적하라</h2>
+                <!-- 980x980 적용 -->
+                <div style="width:100%; max-width:400px; aspect-ratio:980/980; margin:0 auto 20px;">
+                    <img src="img/5.삵 2번.jpg" style="width:100%; height:100%; object-fit:contain; border-radius:10px;">
+                </div>
+                <div class="story-text">
+                    "여러 동물들이 숲을 지나갔어.<br>
+                    내 발자국은 깊은 숲속 <strong>이곳</strong>으로 이어져 있어."
+                </div>
+                <button class="choice-btn" onclick="GameUI.modal('정답! 내 발자국은 우이령길로 이어져 있어.'); SceneManager.next('ep4', 3);">A. 우이령길</button>
+                <button class="choice-btn" onclick="GameUI.modal('여기는 사람이 너무 많아.')">B. 북서울꿈의숲</button>
+                <button class="choice-btn" onclick="GameUI.modal('여긴 바위가 너무 많아.')">C. 북한산</button>
+                <button class="choice-btn" onclick="GameUI.modal('여긴 물이 흐르는 곳이야.')">D. 우이천</button>
+            </div>
+
+            <!-- M3: 로드킬 (게임 로직 수정: 클릭 이동, TXT 파일 참조) -->
+            <div class="scene" id="ep4-4">
+                <h2 style="color:var(--accent-ep4)">Mission 3. 죽음의 도로 건너기</h2>
+                <div class="story-text">
+                    "먹이를 찾으려면 도로를 건너야 해.<br>
+                    차가 오지 않는 틈을 타서 <strong>[이동]</strong> 버튼을 <strong>조금씩 클릭</strong>해서 아래쪽 안전구역까지 건너가게 해줘!"
+                </div>
+                
+                <div class="road-scene">
+                    <div class="player-salk" id="player-salk">😿</div> <!-- 기본 캐릭터: 울고있는 고양이 -->
+                    <div class="center-line"></div>
+                    <div class="safe-zone-end">안전 구역 (도착)</div>
+                    
+                    <!-- 장애물 차량 (반전 적용) -->
+                    <div class="enemy-car car-top" id="car1" style="left: 100px;">🚗</div>
+                    <div class="enemy-car car-bottom" id="car2" style="left: 200px;">🚙</div>
+                </div>
+                
+                <div id="road-msg" style="height:30px; font-weight:bold; color:#f4a261;">준비...</div>
+
+                <button class="btn" id="move-btn" onclick="Ep4Game.moveSalkClick()">이동 (안전할 때 조금씩 클릭)</button>
+            </div>
+
+            <!-- M4: 먹이사슬 -->
+            <div class="scene" id="ep4-5">
+                <h2 style="color:var(--accent-ep4)">M4. 무너진 먹이사슬</h2>
+                <div class="story-text">
+                    "먹이사슬 조각을 알맞은 칸에 눌러 <strong>아래에서 위로</strong> 탑을 쌓아줘!"
+                </div>
+                <div class="piece-container">
+                    <div class="puzzle-piece" id="p-salk" onclick="Ep4Game.selectPiece('salk')">🐆<br>삵</div>
+                    <div class="puzzle-piece" id="p-bug" onclick="Ep4Game.selectPiece('bug')">🦗<br>곤충</div>
+                    <div class="puzzle-piece" id="p-bird" onclick="Ep4Game.selectPiece('bird')">🐦<br>새</div>
+                    <div class="puzzle-piece" id="p-grass" onclick="Ep4Game.selectPiece('grass')">🌿<br>풀</div>
+                    <div class="puzzle-piece" id="p-mouse" onclick="Ep4Game.selectPiece('mouse')">🐭<br>쥐</div>
+                </div>
+                <div class="pyramid-container">
+                    <div class="puzzle-slot" id="slot-5" onclick="Ep4Game.placePiece(5)">5. 최상위 포식자</div>
+                    <div class="puzzle-slot" id="slot-4" onclick="Ep4Game.placePiece(4)">4. 3차 소비자</div>
+                    <div class="puzzle-slot" id="slot-3" onclick="Ep4Game.placePiece(3)">3. 2차 소비자</div>
+                    <div class="puzzle-slot" id="slot-2" onclick="Ep4Game.placePiece(2)">2. 1차 소비자</div>
+                    <div class="puzzle-slot" id="slot-1" onclick="Ep4Game.placePiece(1)">1. 생산자 (맨 아래)</div>
+                </div>
+                <button class="btn" onclick="Ep4Game.checkPuzzle()">완성 확인</button>
+            </div>
+
+            <div class="scene" id="ep4-6">
+                <h2 style="color:var(--accent-ep4)">Final. 숲의 메시지</h2>
+                <div class="story-text">
+                    "네 덕분에 내가 다시 북한산으로 돌아올 수 있었어.<br>
+                    나의 역할은 숲의 OOOOO을 지키는 거야."<br>
+                    (힌트: ㅅㅁㄷㅇㅅ)
+                </div>
+                <input type="text" id="ep4-input-final" placeholder="다섯 글자 입력">
+                <button class="btn" onclick="Ep4Game.checkFinal()">정답 확인</button>
+            </div>
+
+            <div class="scene" id="ep4-7">
+                <h2 style="color:var(--accent-ep4)">🎉 에피소드 4 클리어!</h2>
+                <div class="img-box">
+                    <img src="img/5.삵 3번.jpg" alt="호박석">
+                </div>
+                <div class="story-text">
+                    "정답은 생물다양성이야!<br>
+                    이건 [용맹의 호박석]이야. 너의 용기를 영원히 기억할게."
+                </div>
+                <button class="btn" onclick="GameSystem.clearEpisode(4)">본부로 복귀</button>
+            </div>
+        </div>
+
+        <!-- #################### 엔딩 #################### -->
+        <div id="section-ending" class="game-section">
+            <div class="scene active" id="ending-1">
+                <h2>#1. 꿈에서 깨어나다</h2>
+                <div class="img-box" style="aspect-ratio: 980/715;">
+                    <img src="img/6.엔딩 1번.jpg" alt="창밖">
+                </div>
+                <div class="story-text">
+                    눈을 뜨자 익숙한 내 방 천장이 보였다.<br>
+                    내 손에는 숲속 친구들이 남긴 증표들이 묵직하게 남아있었다.
+                </div>
+                <button class="btn" onclick="SceneManager.next('ending', 1)">깊은 생각에 잠긴다</button>
+            </div>
+
+            <div class="scene" id="ending-2">
+                <h2>#2. 보이지 않는 이웃들</h2>
+                <!-- 1080x662 비율 적용 -->
+                <div class="img-box" style="width:100%; aspect-ratio:1080/662;">
+                    <img src="img/6.엔딩 2번.jpg" alt="동물들">
+                </div>
+                <div class="story-text">
+                    바위 틈 산개나리, 두통을 앓는 딱따구리, 로드킬 당하는 너구리, 갈대 숲의 삵...<br>
+                    이들은 우리와 함께 살아가는 <strong>보이지 않는 이웃</strong>들이었다.
+                </div>
+                <button class="btn" onclick="SceneManager.next('ending', 2)">수첩을 꺼낸다</button>
+            </div>
+
+            <!-- Scene 3: 전환 (탐정 -> 지킴이) -->
+            <div id="ending-3" class="scene">
+                <h2>#3. 탐정을 넘어 지킴이로</h2>
+                <div class="story-text">
+                    나는 서랍 속에 있던 '탐정 수첩'을 꺼냈다.<br>
+                    지금까지 우리는 그들이 '누구'이고 '왜' 아픈지 밝혀내는 관찰자(탐정)였다.<br><br>
+                    하지만 문제를 아는 것만으로는 아무것도 바뀌지 않는다.<br>
+                    진정한 해결은 행동에서 시작된다.<br><br>
+                    
+                    나는 수첩 표지의 '탐정단'이라는 글자 위에 두 줄을 긋고, 새로운 이름을 꾹꾹 눌러썼다.
+                </div>
+                <div class="img-box" style="height:120px; background:none; border:none;">
+                    <div style="font-size:2rem; color:#888; text-decoration: line-through;">생태탐정단</div>
+                    <div style="font-size:2.5rem; color:#00ff9d; font-weight:bold; margin-top:10px;">생태지킴이</div>
+                </div>
+                <button class="btn" onclick="SceneManager.next('ending', 3)">다짐을 기록한다</button>
+            </div>
+
+            <div class="scene" id="ending-4">
+                <h2>#4. 우리의 약속</h2>
+                <div class="story-text" style="background:#fff; color:#000;">
+                    <div style="text-align:center; border-bottom:2px solid #000; padding-bottom:10px; margin-bottom:10px; font-weight:bold;">🌿 강북 생태지킴이의 약속 🌿</div>
+                    1. 나는 지구의 모든 생명을 존중하겠습니다.<br>
+                    2. 나는 일회용품 사용을 줄여 기후 위기로부터 숲을 지키겠습니다.<br>
+                    3. 나는 숲에 쓰레기를 버리지 않고, 깨끗하게 지키겠습니다.<br>
+                    4. 나는 길에서 야생동물을 만나면 조용히 거리를 두겠습니다.<br>
+                    5. 나는 우리 마을의 다양한 생물들에 대해 친구들에게 알려주겠습니다.
+                </div>
+                <div class="img-box">
+                    <img src="img/6.엔딩 3번.jpg" alt="공존">
+                </div>
+                <div class="story-text">
+                    창문을 열자 시원한 바람이 불어온다.<br>
+                    아스팔트 틈의 작은 풀꽃도, 하늘을 나는 새도<br>
+                    모두 나와 함께 살아가는 생명이라는 걸 알았으니까.<br><br>
+                    <strong>"이제 시작이야. 우리가 함께 살아갈 내일은."</strong>
+                </div>
+                <button class="btn" onclick="EndGame.celebrate()">새로운 시작</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /* === UI 관리자 === */
+        const GameUI = {
+            modal: function(msg) {
+                document.getElementById('modal-text').innerText = msg;
+                document.getElementById('custom-modal').style.display = 'flex';
+            },
+            closeModal: function() {
+                document.getElementById('custom-modal').style.display = 'none';
+            }
+        };
+
+        /* === 1. 시스템 관리자 === */
+        const GameSystem = {
+            clearedEpisodes: [], 
+            startEpisode: function(epNum) {
+                if(this.clearedEpisodes.includes(epNum)) return GameUI.modal("이미 해결한 사건입니다! (도장이 찍혀있어요)");
+                document.querySelectorAll('.game-section').forEach(el => el.classList.remove('active'));
+                document.getElementById(`section-ep${epNum}`).classList.add('active');
+                SceneManager.reset(`ep${epNum}`);
+                if(epNum === 3) Ep3Game.resetGame();
+                if(epNum === 4) Ep4Game.initRoadGame();
+            },
+            clearEpisode: function(epNum) {
+                if(!this.clearedEpisodes.includes(epNum)) {
+                    this.clearedEpisodes.push(epNum);
+                    document.getElementById(`door-${epNum}`).classList.add('cleared');
+                }
+                this.goToLobby();
+            },
+            goToLobby: function() {
+                document.querySelectorAll('.game-section').forEach(el => el.classList.remove('active'));
+                document.getElementById('section-lobby').classList.add('active');
+                if(this.clearedEpisodes.length === 4) document.getElementById('final-btn').style.display = 'block';
+            },
+            goToEnding: function() {
+                document.querySelectorAll('.game-section').forEach(el => el.classList.remove('active'));
+                document.getElementById('section-ending').classList.add('active');
+            }
+        };
+
+        /* === 2. 장면 관리자 (누적형 스크롤) === */
+        const SceneManager = {
+            next: function(sectionId, currentIdx) {
+                const currentScene = document.getElementById(`${sectionId}-${currentIdx}`);
+                const nextScene = document.getElementById(`${sectionId}-${currentIdx + 1}`);
+                if(currentScene) {
+                    currentScene.classList.add('finished');
+                    const btns = currentScene.querySelectorAll('button');
+                    btns.forEach(btn => {
+                        btn.disabled = true; btn.classList.add('disabled');
+                        if(['정답 확인','확인'].includes(btn.innerText)) btn.innerText = "완료";
+                    });
+                }
+                if(nextScene) {
+                    nextScene.classList.add('active');
+                    setTimeout(() => nextScene.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+                }
+            },
+            reset: function(sectionId) {
+                const container = document.getElementById(`section-${sectionId}`);
+                container.querySelectorAll('.scene').forEach(s => {
+                    s.classList.remove('active', 'finished');
+                    s.querySelectorAll('button').forEach(btn => { btn.disabled = false; btn.classList.remove('disabled'); });
+                });
+                container.querySelector('.scene').classList.add('active');
+                document.getElementById('game-wrapper').scrollTop = 0;
+            }
+        };
+
+        /* === 3. 에피소드별 로직 === */
+        // EP1 산개나리
+        const Ep1Game = {
+            foundCount: 0,
+            catchItem: function(el) {
+                const marker = el.nextElementSibling;
+                if(marker.style.display === 'block') return; 
+                el.style.display = 'none'; marker.style.display = 'block';
+                this.foundCount++;
+                document.getElementById('ep1-cnt').innerText = `찾은 특징: ${this.foundCount} / 3`;
+                if(this.foundCount === 3) {
+                    GameUI.modal('띠링~! 대단해! 특징을 모두 찾았어!');
+                    document.getElementById('ep1-btn-2').style.display = 'block';
+                }
+            },
+            checkAnswer1: function() {
+                const val = document.getElementById('ep1-input-1').value;
+                if(val.includes('리기다')) { GameUI.modal('띠링~! 정답! 리기다소나무야.'); SceneManager.next('ep1', 3); }
+                else this.wrongAnswer('힌트: ㄹㄱㄷ 소나무');
+            },
+            checkAnswer2: function() {
+                if(document.getElementById('ep1-input-2').value.replace(/\s/g,'') === '생물다양성') {
+                    GameUI.modal('띠링~! 정답! 다양해야 건강해져.'); SceneManager.next('ep1', 5);
+                } else this.wrongAnswer('힌트: ㅅㅁㄷㅇㅅ');
+            },
+            checkAnswer3: function() {
+                if(document.getElementById('ep1-input-3').value.replace(/\s/g,'') === '다양해야강하다') {
+                    GameUI.modal('띠링~! 주문 성공!'); SceneManager.next('ep1', 6);
+                } else this.wrongAnswer('암호표를 보고 글자를 조합해봐.');
+            },
+            wrongAnswer: function(msg) {
+                GameUI.modal(msg); document.getElementById('section-ep1').classList.add('shake');
+                setTimeout(()=>document.getElementById('section-ep1').classList.remove('shake'), 400);
+            }
+        };
+
+        // EP2 너구리
+        const Ep2Game = {
+            toggleTrash: function(el) { el.classList.toggle('selected'); },
+            submitTrash: function() {
+                const selected = document.querySelectorAll('.trash-item.selected');
+                if(selected.length !== 4) return GameUI.modal('4개를 선택해야 해!');
+                let correct = true;
+                selected.forEach(el => { if(el.dataset.v === 'x') correct = false; });
+                if(correct) { GameUI.modal('띠링~! 완벽해!'); SceneManager.next('ep2', 2); }
+                else { GameUI.modal('재활용 안 되는 게 섞여있어.'); document.getElementById('section-ep2').classList.add('shake'); setTimeout(()=>document.getElementById('section-ep2').classList.remove('shake'),400); }
+            },
+            bridgeWord: "",
+            addBridge: function(char) {
+                if(this.bridgeWord.length < 4) { this.bridgeWord += char; document.getElementById('bridge-display').innerText = this.bridgeWord; }
+            },
+            resetBridge: function() { this.bridgeWord = ""; document.getElementById('bridge-display').innerText = "____"; },
+            checkBridge: function() {
+                if(this.bridgeWord === "생태통로") { GameUI.modal("띠링~! 다리 완성!"); SceneManager.next('ep2', 4); }
+                else { GameUI.modal("다시 생각해봐. (정답: 생태통로)"); this.resetBridge(); }
+            },
+            checkAction: function(type) {
+                if(type === 4) {
+                    document.getElementById('raccoon-status').classList.add('green');
+                    document.getElementById('raccoon-status').innerText = "😇";
+                    GameUI.modal("딩동댕! 뒷걸음질 쳐서 거리를 둡니다."); SceneManager.next('ep2', 5);
+                } else { GameUI.modal("삐-! 경고! 너구리가 놀라요."); document.getElementById('section-ep2').classList.add('shake'); setTimeout(()=>document.getElementById('section-ep2').classList.remove('shake'),400); }
+            },
+            checkMath: function() {
+                if(document.getElementById('ep2-input-math').value == '4') { GameUI.modal('띠링~! 정답!'); SceneManager.next('ep2', 6); }
+                else document.getElementById('ep2-hint-math').style.display = 'block';
+            }
+        };
+
+        // EP3 딱따구리
+        const Ep3Game = {
+            sequence: [], userSequence: [], isUserTurn: false,
+            resetGame: function() {
+                 this.sequence = []; this.userSequence = []; this.isUserTurn = false;
+                 document.getElementById('rhythm-status').innerText = "[시작] 버튼을 누르세요";
+                 document.getElementById('rhythm-start-btn').disabled = false;
+            },
+            startGame: function() {
+                document.getElementById('rhythm-start-btn').disabled = true;
+                document.getElementById('rhythm-status').innerText = "잘 보세요...";
+                this.sequence = []; this.userSequence = [];
+                for(let i=0; i<5; i++) this.sequence.push(Math.floor(Math.random() * 16) + 1); // 5개 랜덤 (수정됨)
+                this.playSequence();
+            },
+            playSequence: function() {
+                let i = 0;
+                let interval = setInterval(() => {
+                    if (i >= this.sequence.length) {
+                        clearInterval(interval); this.isUserTurn = true;
+                        document.getElementById('rhythm-status').innerText = "순서대로 누르세요!";
+                        document.getElementById('rhythm-status').style.color = "#00ff9d"; return;
+                    }
+                    this.highlightHole(this.sequence[i]); i++;
+                }, 800); // 속도 느리게 (800ms)
+            },
+            highlightHole: function(num) {
+                let hole = document.getElementById('hole-' + num);
+                hole.classList.add('active'); setTimeout(() => hole.classList.remove('active'), 400);
+            },
+            userClick: function(num) {
+                if (!this.isUserTurn) return;
+                this.highlightHole(num); this.userSequence.push(num);
+                let idx = this.userSequence.length - 1;
+                if (this.userSequence[idx] !== this.sequence[idx]) {
+                    document.getElementById('rhythm-status').innerText = "틀렸어! 다시 시작해봐.";
+                    document.getElementById('rhythm-status').style.color = "#ff6b6b";
+                    this.isUserTurn = false;
+                    document.getElementById('rhythm-start-btn').disabled = false;
+                    document.getElementById('rhythm-start-btn').innerText = "다시 도전!";
+                    return;
+                }
+                if (this.userSequence.length === this.sequence.length) {
+                    this.isUserTurn = false; document.getElementById('rhythm-status').innerText = "성공!";
+                    setTimeout(() => { GameUI.modal("대단해! 리듬감이 좋은걸?"); SceneManager.next('ep3', 3); }, 500);
+                }
+            },
+            checkCode: function() {
+                if(document.getElementById('ep3-input-code').value.replace(/\s/g,'') === '625') {
+                    GameUI.modal('띠링~! 정답! 죽은 나무는 숲의 보물이야.'); SceneManager.next('ep3', 4);
+                } else GameUI.modal('1~20번 암호표를 잘 봐. 6(고)-2(사)-5(목)');
+            },
+            checkFriend: function() {
+                if(document.getElementById('ep3-input-friend').value === '하늘다람쥐') {
+                    GameUI.modal('띠링~! 정답!'); SceneManager.next('ep3', 5);
+                } else {
+                    GameUI.modal('틀렸어. 다시 생각해봐.');
+                    document.getElementById('ep3-hint-friend').style.display = 'block'; // 힌트 표시
+                }
+            },
+            checkKey: function() {
+                const val = document.getElementById('ep3-input-key').value;
+                if(val === '핵심종' || val === '키스톤스피시즈') {
+                    GameUI.modal('띠링~! 정답! 숲의 기둥 같은 존재야.'); SceneManager.next('ep3', 6);
+                } else GameUI.modal('초성 힌트: ㅎ ㅅ ㅈ');
+            }
+        };
+
+        // EP4 삵
+        const Ep4Game = {
+            checkFeatures: function() {
+                const checks = document.querySelectorAll('input[name="salk"]:checked');
+                if(checks.length !== 2) return GameUI.modal('특징 2개를 선택해줘.');
+                let isCorrect = true;
+                checks.forEach(c => { if(c.value === 'x') isCorrect = false; });
+                if(isCorrect) { GameUI.modal('띠링~! 정확해! 귀 뒤 흰 반점이 포인트야.'); SceneManager.next('ep4', 2); }
+                else GameUI.modal('다시 관찰해봐. 삵은 꼬리가 뭉툭해.');
+            },
+            salkTop: 10,
+            gameInterval: null,
+            car1: { x: 400, speed: 3 }, // 상단 차 (오->왼)
+            car2: { x: 0, speed: 4 },   // 하단 차 (왼->오)
+
+            initRoadGame: function() {
+                this.salkTop = 10;
+                this.car1.x = 400; 
+                this.car2.x = 0;   
+                this.updateSalkPos();
+                this.gameLoop();
+            },
+
+            gameLoop: function() {
+                clearInterval(this.gameInterval);
+                this.gameInterval = setInterval(() => {
+                    var c1 = document.getElementById('car1');
+                    var c2 = document.getElementById('car2');
+                    
+                    // car1: 오른쪽 -> 왼쪽
+                    this.car1.x -= this.car1.speed;
+                    if(this.car1.x < -60) this.car1.x = 500;
+                    c1.style.left = this.car1.x + 'px';
+
+                    // car2: 왼쪽 -> 오른쪽
+                    this.car2.x += this.car2.speed;
+                    if(this.car2.x > 500) this.car2.x = -60;
+                    c2.style.left = this.car2.x + 'px';
+
+                    // 충돌 체크 (salkTop 범위 내일 때 car.x 확인)
+                    if(this.salkTop > 70 && this.salkTop < 130) {
+                        // Car 1 (상단)
+                        if(this.car1.x > 200 && this.car1.x < 320) this.collision();
+                    }
+                    
+                    if(this.salkTop > 230 && this.salkTop < 290) {
+                        // Car 2 (하단)
+                        if(this.car2.x > 200 && this.car2.x < 320) this.collision();
+                    }
+
+                    // 도착
+                    if(this.salkTop > 330) {
+                        clearInterval(this.gameInterval);
+                        GameUI.modal("성공! 안전하게 건넜어.");
+                        SceneManager.next('ep4', 4);
+                    }
+                }, 20);
+            },
+
+            updateSalkPos: function() {
+                document.getElementById('player-salk').style.top = this.salkTop + 'px';
+            },
+
+            moveSalkClick: function() {
+                this.salkTop += 20; // 클릭당 20px 이동
+                this.updateSalkPos();
+            },
+
+            collision: function() {
+                document.getElementById('road-msg').innerText = "쾅! 조심해!";
+                this.salkTop = 10;
+                this.updateSalkPos();
+                setTimeout(() => { document.getElementById('road-msg').innerText = "다시 시도..."; }, 1000);
+            },
+
+            // --- M4 먹이사슬 ---
+            selectedPiece: null,
+            selectPiece: function(id) {
+                document.querySelectorAll('.puzzle-piece').forEach(p => p.classList.remove('selected'));
+                this.selectedPiece = id; document.getElementById('p-'+id).classList.add('selected');
+            },
+            placePiece: function(slotNum) {
+                if(!this.selectedPiece) return GameUI.modal("먼저 조각을 선택하세요.");
+                const correctMap = { 1:'grass', 2:'bug', 3:'mouse', 4:'bird', 5:'salk' };
+                if(this.selectedPiece !== correctMap[slotNum]) return GameUI.modal("여기가 아닌 것 같아. 먹이사슬 순서를 생각해봐!");
+                
+                const slot = document.getElementById('slot-'+slotNum);
+                const pieceEl = document.getElementById('p-'+this.selectedPiece);
+                slot.innerHTML = pieceEl.innerHTML; slot.classList.add('filled'); slot.dataset.filled = 'true';
+                this.selectedPiece = null; pieceEl.style.visibility = 'hidden'; 
+            },
+            checkPuzzle: function() {
+                let filled = 0; for(let i=1; i<=5; i++) if(document.getElementById('slot-'+i).dataset.filled) filled++;
+                if(filled === 5) { GameUI.modal("띠링~! 정답! 생태계 피라미드 완성!"); SceneManager.next('ep4', 5); }
+                else GameUI.modal("아직 빈칸이 있어.");
+            },
+            checkFinal: function() {
+                if(document.getElementById('ep4-input-final').value === '생물다양성') {
+                    GameUI.modal('띠링~! 정답! 모든 생명은 연결되어 있어.'); SceneManager.next('ep4', 6);
+                } else GameUI.modal('힌트: 생태계에 다양한 생물이 함께 사는 것을 말해! (ㅅㅁㄷㅇㅅ)'); // 쉬운 설명
+            }
+        };
+
+        // 엔딩 폭죽
+        const EndGame = {
+            celebrate: function() {
+                GameUI.modal("🎉 강북구 생태지킴이가 된 것을 축하합니다! 🎉");
+                document.getElementById('confetti-canvas').style.display = 'block';
+                this.fireworks();
+                setTimeout(() => location.reload(), 6000);
+            },
+            fireworks: function() {
+                const canvas = document.getElementById('confetti-canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+                const particles = [];
+                // 폭죽 이모티콘 배열
+                const emojis = ['🎉', '✨', '🌿', '🌸', '🐾'];
+                
+                for(let i=0; i<150; i++) {
+                    particles.push({
+                        x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+                        r: Math.random()*15+5, d: Math.random()*5+2, 
+                        color: `hsl(${Math.random()*360}, 100%, 50%)`,
+                        tilt: Math.floor(Math.random()*10)-10,
+                        emoji: emojis[Math.floor(Math.random() * emojis.length)]
+                    });
+                }
+                function draw() {
+                    ctx.clearRect(0,0,canvas.width,canvas.height);
+                    particles.forEach((p, i) => {
+                        p.y += p.d; p.tilt += 1;
+                        if(p.y > canvas.height) { p.y = -10; p.x = Math.random()*canvas.width; }
+                        
+                        ctx.font = p.r + "px Serif";
+                        ctx.fillText(p.emoji, p.x + p.tilt, p.y);
+                    });
+                    requestAnimationFrame(draw);
+                }
+                draw();
+            }
+        };
+    </script>
+</body>
+</html>
